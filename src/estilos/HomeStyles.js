@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 export default StyleSheet.create({
   container: {
   flex: 1,
-  backgroundColor: "#EEF3F8",
+  backgroundColor: "rgb(11, 35, 146)",
 },
 
   header: {
@@ -15,17 +15,17 @@ export default StyleSheet.create({
   title: {
     fontSize: 34,
     fontWeight: "bold",
-    color: "#17408B",
+    color: "#ffffff",
     marginTop: 15,
 },
 
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: "#fff",
 },
 
   featuredCard: {
-    backgroundColor: "#17408B",
+    backgroundColor: "#bd0c0cd2",
     marginHorizontal: 18,
     borderRadius: 20,
     padding: 20,
@@ -34,7 +34,7 @@ export default StyleSheet.create({
 },
 
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#bd0c0cd2",
     marginHorizontal: 18,
     borderRadius: 18,
     padding: 18,
@@ -45,31 +45,31 @@ export default StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#17408B",
+    color: "#ffffff",
     marginBottom: 15,
   },
 
   matchText: {
-    color: "#FFFFFF",
+    color: "rgb(255, 255, 255)",
     fontSize: 24,
     fontWeight: "bold",
   },
 
   matchInfo: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     marginTop: 5,
     marginBottom: 15,
   },
 
   redButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgb(11, 35, 146)",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
   },
 
   buttonText: {
-    color: "#C9082A",
+    color: "#ffffff",
     fontWeight: "bold",
     fontSize: 16,
   },
@@ -77,13 +77,13 @@ export default StyleSheet.create({
   result: {
     fontSize: 16,
     marginBottom: 10,
-    color: "#333",
+    color: "#ffffff",
   },
 
   tableRow: {
     fontSize: 16,
     marginBottom: 8,
-    color: "#333",
+    color: "#ffffff",
   },
 
   
