@@ -30,6 +30,15 @@ const games = [
     homeScore: 112,
     awayScore: 105,
   },
+  {
+    id: 4,
+    time: "22:30",
+    status: "UPCOMING",
+    home: "Chicago Bulls",
+    away: "Philadelphia 76ers",
+    homeScore: null,
+    awayScore: null,
+  },
 ];
 
 export default function GamesScreen() {
