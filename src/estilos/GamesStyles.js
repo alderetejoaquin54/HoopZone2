@@ -1,103 +1,120 @@
 import { StyleSheet } from "react-native";
 
-const styles = StyleSheet.create({
+export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#b41616d2",
+    backgroundColor: "rgb(11, 35, 146)",
   },
 
   header: {
-    backgroundColor: "rgb(11, 35, 146",
-    padding: 20,
+    alignItems: "center",
     paddingTop: 50,
+    paddingBottom: 20,
   },
 
   title: {
-    color: "#FFFFFF",
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: "bold",
+    color: "#ffffff",
   },
 
   subtitle: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    marginTop: 5,
+    fontSize: 15,
+    color: "#d0d8ff",
+    marginTop: 4,
   },
 
-  dateContainer: { 
+  tabContainer: {
     flexDirection: "row",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    marginHorizontal: 18,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#a10505d2",
-    padding: 15,
+    borderRadius: 10,
   },
 
-  dateButton: {
-    backgroundColor: "rgb(9, 28, 114)",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+  tabButtonActive: {
+    backgroundColor: "#bd0c0cd2",
   },
 
-  dateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 28,
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#d0d8ff",
   },
 
-  currentDate: {
-    alignItems: "center",
-  },
-
-  dateText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "rgb(9, 28, 114)",
-  },
-
-  dateNumber: {
-    fontSize: 12,
+  tabTextActive: {
     color: "#ffffff",
-    marginTop: 3,
+    fontWeight: "bold",
   },
 
-  gamesContainer: {
-    padding: 15,
+  gamesList: {
+    paddingBottom: 20,
   },
 
   gameCard: {
-    backgroundColor: "rgb(9, 28, 114)",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 3,
+    backgroundColor: "#bd0c0cd2",
+    marginHorizontal: 18,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 5,
   },
 
-  gameHeader: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    alignItems: "center",
+    marginBottom: 12,
   },
 
-  status: {
-    color: "#ffffff",
-    fontSize: 12,
+  statusBadgeLive: {
+    backgroundColor: "#d32f2f",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+
+  statusBadgeUpcoming: {
+    backgroundColor: "rgb(11, 35, 146)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+
+  statusBadgeFinal: {
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+
+  statusText: {
+    fontSize: 11,
     fontWeight: "bold",
+    color: "#ffffff",
   },
 
-  time: {
-    color: "#ffffff",
+  arenaText: {
     fontSize: 12,
+    color: "#d0d8ff",
   },
 
   teamsContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingVertical: 8,
   },
 
-  team: {
+  teamBlock: {
     flex: 1,
     alignItems: "center",
   },
@@ -105,23 +122,74 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 15,
     fontWeight: "bold",
-    textAlign: "center",
     color: "#ffffff",
+    textAlign: "center",
   },
 
-  score: {
-    fontSize: 25,
+  teamRecord: {
+    fontSize: 11,
+    color: "#d0d8ff",
+    marginTop: 2,
+  },
+
+  scoreText: {
+    fontSize: 26,
     fontWeight: "bold",
     color: "#ffffff",
-    marginTop: 5,
+    marginTop: 6,
   },
 
-  vs: {
+  scoreTextWinner: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#ffd700",
+    marginTop: 6,
+  },
+
+  vsContainer: {
+    alignItems: "center",
+    paddingHorizontal: 10,
+    minWidth: 70,
+  },
+
+  vsText: {
     fontSize: 14,
     fontWeight: "bold",
+    color: "#d0d8ff",
+  },
+
+  gameTime: {
+    fontSize: 12,
+    fontWeight: "bold",
     color: "#ffffff",
-    marginHorizontal: 10,
+    marginTop: 4,
+  },
+
+  cardFooter: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.15)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  broadcastText: {
+    fontSize: 12,
+    color: "#d0d8ff",
+  },
+
+  detailsButton: {
+    backgroundColor: "rgb(11, 35, 146)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+
+  detailsButtonText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#ffffff",
   },
 });
-
-export default styles;
