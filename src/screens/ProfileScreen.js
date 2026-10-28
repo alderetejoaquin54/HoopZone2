@@ -1,5 +1,4 @@
-import React from "react";
-<<<<<<< HEAD
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,8 +7,23 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../estilos/ProfileStyles";
+import { obtenerUsuarios } from "../services/api";
 
 export default function ProfileScreen() {
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    obtenerUsuarios()
+      .then((usuarios) => {
+        if (Array.isArray(usuarios) && usuarios.length > 0) {
+          setUsuario(usuarios[0]);
+        }
+      })
+      .catch((err) => {
+        console.log("No se pudo obtener usuario de la API:", err.message);
+      });
+  }, []);
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -19,10 +33,14 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={50} color="#ffffff" />
           </View>
-          <Text style={styles.username}>Fan HoopZone</Text>
-          <Text style={styles.userTag}>@hoopfan_nba</Text>
+          <Text style={styles.username}>
+            {usuario ? usuario.nombre_usuario : "Fan HoopZone"}
+          </Text>
+          <Text style={styles.userTag}>
+            {usuario ? `@${usuario.nombre_usuario}` : "@hoopfan_nba"}
+          </Text>
           <Text style={styles.bio}>
-            Apasionado del básquetbol y seguidor fiel de toda la temporada NBA.
+            {usuario ? `Usuario ID #${usuario.id} • ${usuario.email}` : "Apasionado del básquetbol y seguidor fiel de toda la temporada NBA."}
           </Text>
         </View>
 
@@ -159,92 +177,3 @@ export default function ProfileScreen() {
     </View>
   );
 }
-=======
-import { View, Text } from "react-native";
-import { StyleSheet } from "react-native";
-
-export default StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#EEF3F8",
-  },
-
-  header: {
-    alignItems: "center",
-    paddingTop: 50,
-    paddingBottom: 25,
-  },
-
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: "#17408B",
-  },
-
-  username: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#17408B",
-    marginTop: 15,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 5,
-  },
-
-  card: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 18,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    elevation: 5,
-  },
-
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#17408B",
-    marginBottom: 10,
-  },
-
-  cardText: {
-    fontSize: 16,
-    color: "#333",
-  },
-
-  activityText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 8,
-  },
-
-  blueButton: {
-    backgroundColor: "#17408B",
-    marginHorizontal: 18,
-    borderRadius: 12,
-    padding: 15,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-
-  redButton: {
-    backgroundColor: "#C9082A",
-    marginHorizontal: 18,
-    borderRadius: 12,
-    padding: 15,
-    alignItems: "center",
-    marginBottom: 35,
-  },
-
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-});
->>>>>>> 8bc95c120e56159a65ac462d6d56ce4f61826f82

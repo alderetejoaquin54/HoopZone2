@@ -1,10 +1,12 @@
 
 import express from 'express';
+import cors from 'cors';
 import conexion from './conexion.js';
 
 const app = express();
 const PUERTO = 3000;
 
+app.use(cors());
 app.use(express.json());
 
 // Comprobar conexión con MySQL

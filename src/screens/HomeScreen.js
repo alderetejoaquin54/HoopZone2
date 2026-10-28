@@ -54,30 +54,55 @@ const conferenceTops = {
 export default function HomeScreen({ navigation }) {
   const [selectedConf, setSelectedConf] = useState("este");
   const [estadoBackend, setEstadoBackend] = useState("Comprobando conexión...");
+  const [conectado, setConectado] = useState(false);
 
-useEffect(() => {
-  comprobarBackend()
-    .then((datos) => {
-      setEstadoBackend(
-        datos.conectado
-          ? `Backend conectado: ${datos.base}`
-          : "No se pudo conectar al backend"
-      );
-    })
-    .catch((error) => {
-      console.error("Error de conexión:", error.message);
-      setEstadoBackend("Backend no disponible");
-    });
-}, []);
+  useEffect(() => {
+    comprobarBackend()
+      .then((datos) => {
+        if (datos.conectado) {
+          setConectado(true);
+          setEstadoBackend(`Base de Datos Conectada: ${datos.base}`);
+        } else {
+          setConectado(false);
+          setEstadoBackend("Error al conectar con la base de datos");
+        }
+      })
+      .catch((error) => {
+        console.error("Error de conexión:", error.message);
+        setConectado(false);
+        setEstadoBackend("Backend no disponible");
+      });
+  }, []);
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={{ padding: 12, alignItems: "center" }}>
-  <Text style={{ color: "#ffffff" }}>
-    {estadoBackend}
-  </Text>
-</View>
+        <View
+          style={{
+            backgroundColor: conectado ? "rgba(46, 125, 50, 0.35)" : "rgba(198, 40, 40, 0.35)",
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            marginHorizontal: 18,
+            marginTop: 12,
+            marginBottom: 4,
+            borderRadius: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: conectado ? "#4caf50" : "#e57373",
+          }}
+        >
+          <Ionicons
+            name={conectado ? "checkmark-circle" : "alert-circle"}
+            size={18}
+            color={conectado ? "#81c784" : "#e57373"}
+            style={{ marginRight: 6 }}
+          />
+          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
+            {estadoBackend}
+          </Text>
+        </View>
 
         {/* HEADER CON LOGO */}
         <View style={styles.header}>
