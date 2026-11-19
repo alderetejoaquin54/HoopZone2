@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { createDrawerNavigator, DrawerContentScrollView } from "@react-navigation/drawer";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { obtenerUsuarios } from "../services/api";
 
 import BottomTabs from "./BottomTabs";
 import NewsScreen from "../screens/NewsScreen";
-import FriendsScreen from "../screens/FriendsScreen";
 import FantasyScreen from "../screens/FantasyScreen";
 import StatsScreen from "../screens/StatsScreen";
 import PlayersScreen from "../screens/PlayersScreen";
@@ -27,7 +27,6 @@ const mainItems = [
 // Items del drawer lateral
 const drawerItems = [
   { name: "Noticias",       icon: "newspaper-outline",      iconActive: "newspaper"      },
-  { name: "Amigos",         icon: "people-circle-outline",  iconActive: "people-circle"  },
   { name: "NBA Fantasy",    icon: "trophy-outline",         iconActive: "trophy"         },
   { name: "Estadísticas",   icon: "stats-chart-outline",    iconActive: "stats-chart"    },
   { name: "Jugadores",      icon: "body-outline",           iconActive: "body"           },
@@ -38,6 +37,17 @@ function CustomDrawerContent(props) {
   const { state, navigation } = props;
   const insets = useSafeAreaInsets();
   const activeRouteName = state.routeNames[state.index];
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    obtenerUsuarios()
+      .then((users) => {
+        if (Array.isArray(users) && users.length > 0) {
+          setUsuario(users[0]);
+        }
+      })
+      .catch(() => {});
+  }, [state]);
 
   return (
     <View style={[styles.drawerContainer, { paddingBottom: insets.bottom }]}>
@@ -47,8 +57,12 @@ function CustomDrawerContent(props) {
         <View style={styles.avatarContainer}>
           <Ionicons name="person" size={36} color="#ffffff" />
         </View>
-        <Text style={styles.drawerUsername}>Fan HoopZone</Text>
-        <Text style={styles.drawerUserTag}>@hoopfan_nba</Text>
+        <Text style={styles.drawerUsername}>
+          {usuario ? usuario.nombre_usuario : "Fan HoopZone"}
+        </Text>
+        <Text style={styles.drawerUserTag}>
+          {usuario ? `@${usuario.nombre_usuario}` : "@hoopfan_nba"}
+        </Text>
       </View>
 
       <DrawerContentScrollView
@@ -140,7 +154,6 @@ export default function DrawerNavigator() {
     >
       <Drawer.Screen name="MainTabs"      component={BottomTabs}     />
       <Drawer.Screen name="Noticias"      component={NewsScreen}     />
-      <Drawer.Screen name="Amigos"        component={FriendsScreen}  />
       <Drawer.Screen name="NBA Fantasy"   component={FantasyScreen}  />
       <Drawer.Screen name="Estadísticas"  component={StatsScreen}    />
       <Drawer.Screen name="Jugadores"     component={PlayersScreen}  />

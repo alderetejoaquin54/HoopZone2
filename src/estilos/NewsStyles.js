@@ -103,4 +103,59 @@ export default StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
+
+  newsCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  newsCategory: {
+    backgroundColor: "rgb(11, 35, 146)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+
+  newsCategoryText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+
+  newsDate: {
+    color: "#d0d8ff",
+    fontSize: 12,
+  },
+
+  newsTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+
+  newsSummary: {
+    fontSize: 13,
+    color: "#e8ecff",
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+
+  newsFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.15)",
+    paddingTop: 8,
+  },
+
+  newsAuthor: {
+    fontSize: 12,
+    color: "#ffd54f",
+    fontWeight: "600",
+  },
 });

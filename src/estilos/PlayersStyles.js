@@ -25,45 +25,119 @@ export default StyleSheet.create({
     marginTop: 4,
   },
 
-  card: {
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 18,
+    marginBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    color: "#ffffff",
+    fontSize: 15,
+  },
+
+  searchButton: {
+    backgroundColor: "#bd0c0cd2",
+    borderRadius: 10,
+    padding: 8,
+    marginLeft: 6,
+  },
+
+  playerCard: {
     backgroundColor: "#bd0c0cd2",
     marginHorizontal: 18,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    elevation: 5,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-  },
-
-  comingSoonContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 40,
+    justifyContent: "space-between",
   },
 
-  comingSoonText: {
+  playerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  avatarBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgb(11, 35, 146)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+    borderWidth: 1.5,
+    borderColor: "#ffffff",
+  },
+
+  playerJersey: {
+    color: "#ffffff",
+    fontWeight: "bold",
     fontSize: 16,
-    color: "#d0d8ff",
-    marginTop: 16,
-    fontWeight: "600",
-    textAlign: "center",
   },
 
-  comingSoonSub: {
-    fontSize: 13,
-    color: "#d0d8ff",
-    marginTop: 8,
-    opacity: 0.7,
-    textAlign: "center",
-    paddingHorizontal: 20,
+  playerInfo: {
+    flex: 1,
   },
 
-  sectionTitle: {
-    fontSize: 18,
+  playerName: {
+    fontSize: 17,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 14,
+  },
+
+  playerTeam: {
+    fontSize: 13,
+    color: "#ffffff",
+    opacity: 0.9,
+    marginTop: 2,
+  },
+
+  playerDetails: {
+    fontSize: 12,
+    color: "#d0d8ff",
+    marginTop: 4,
+  },
+
+  favButton: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    marginLeft: 10,
+  },
+
+  loadingBox: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+
+  loadingText: {
+    color: "#ffffff",
+    marginTop: 12,
+    fontSize: 14,
+  },
+
+  emptyText: {
+    color: "#d0d8ff",
+    textAlign: "center",
+    marginTop: 30,
+    fontSize: 15,
+    paddingHorizontal: 30,
   },
 });

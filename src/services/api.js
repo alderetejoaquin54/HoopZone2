@@ -1,21 +1,34 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 
 // Configuración de la URL del Backend:
-// - Si estás probando en la Web: usa localhost:3000
-// - Si estás usando Expo Go en un celular físico conectado a la misma red Wi-Fi: usa la IP local de tu PC (10.0.0.169)
-// - Si estás en emulador de Android: 10.0.2.2:3000
-export const IP_LOCAL = '10.0.0.169';
+// - Si estás en la Web: usa localhost:3000
+// - Si estás en un celular físico (Expo Go) o emulador: detecta automáticamente la IP del host Metro o usa IP_LOCAL
+export const IP_LOCAL = '192.168.100.147';
 
 export const getApiUrl = () => {
   if (Platform.OS === 'web') {
     return 'http://localhost:3000';
   }
+
+  // Detectar automáticamente la IP del host donde corre Metro/Expo
+  try {
+    const scriptURL = NativeModules.SourceCode?.scriptURL;
+    if (scriptURL) {
+      const address = scriptURL.split('://')[1]?.split('/')[0]?.split(':')[0];
+      if (address && address !== 'localhost' && address !== '127.0.0.1') {
+        return `http://${address}:3000`;
+      }
+    }
+  } catch (e) {
+    // Si no está disponible, continuar con la IP de respaldo
+  }
+
   return `http://${IP_LOCAL}:3000`;
 };
 
 export const API_URL = getApiUrl();
 
-const fetchConTimeout = async (url, opciones = {}, tiempoMs = 5000) => {
+const fetchConTimeout = async (url, opciones = {}, tiempoMs = 8000) => {
   const controller = new AbortController();
   const idTimeout = setTimeout(() => controller.abort(), tiempoMs);
 
@@ -57,6 +70,176 @@ export async function obtenerPreferenciasUsuario(id = 1) {
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener las preferencias.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function actualizarUsuario(id, datos) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(datos),
+  });
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    throw new Error(errorData.error || 'No se pudo actualizar el usuario.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function actualizarPreferenciasUsuario(id, preferencias) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/preferencias`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(preferencias),
+  });
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    throw new Error(errorData.error || 'No se pudieron actualizar las preferencias.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerEquiposFavoritos(id = 1) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/equipos-favoritos`);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los equipos favoritos.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function guardarEquipoFavorito(id = 1, equipoApiId) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/equipos-favoritos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ equipo_api_id: equipoApiId }),
+  });
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    throw new Error(errorData.error || 'No se pudo guardar el equipo favorito.');
+  }
+
+  return await respuesta.json();
+}
+
+// ==========================================
+// API BALLDONTLIE - ENDPOINTS NBA
+// ==========================================
+
+export async function obtenerEquiposNBA(sincronizar = false) {
+  const url = `${API_URL}/api/nba/equipos${sincronizar ? '?sincronizar=true' : ''}`;
+  const respuesta = await fetchConTimeout(url, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los equipos de la NBA.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerPosicionesNBA() {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/posiciones`, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener las posiciones de la NBA.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerLideresEstadisticas() {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/estadisticas/lideres`, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los líderes de estadísticas.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerJugadoresNBA(buscar = '') {
+  const query = buscar ? `?buscar=${encodeURIComponent(buscar)}` : '';
+  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/jugadores${query}`, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los jugadores de la NBA.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerPartidosNBA() {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/partidos`, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los partidos de la NBA.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerJugadoresFavoritos(id = 1) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/jugadores-favoritos`);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los jugadores favoritos.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function guardarJugadorFavorito(id = 1, jugadorId, datosExtra = {}) {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/jugadores-favoritos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      jugador_api_id: String(jugadorId),
+      ...datosExtra,
+    }),
+  });
+
+  if (!respuesta.ok) {
+    const errorData = await respuesta.json().catch(() => ({}));
+    throw new Error(errorData.error || 'No se pudo guardar el jugador favorito.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function eliminarJugadorFavorito(id = 1, jugadorId) {
+  const respuesta = await fetchConTimeout(
+    `${API_URL}/api/usuarios/${id}/jugadores-favoritos/${jugadorId}`,
+    { method: 'DELETE' }
+  );
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudo eliminar el jugador favorito.');
+  }
+
+  return await respuesta.json();
+}
+
+export async function obtenerNoticiasNBA() {
+  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/noticias`, {}, 8000);
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener las noticias.');
   }
 
   return await respuesta.json();

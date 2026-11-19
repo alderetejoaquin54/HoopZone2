@@ -66,4 +66,102 @@ export default StyleSheet.create({
     color: "#ffffff",
     marginBottom: 14,
   },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.15)",
+  },
+
+  rowNoBorder: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+
+  rowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  rowIcon: {
+    marginRight: 12,
+  },
+
+  rowLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+
+  rowSubLabel: {
+    fontSize: 12,
+    color: "#d0d8ff",
+    marginTop: 2,
+  },
+
+  /* SELECTORES TIPO PILL */
+  pillGroup: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    borderRadius: 12,
+    padding: 3,
+    marginTop: 8,
+  },
+
+  pill: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 9,
+  },
+
+  pillActive: {
+    backgroundColor: "rgb(11, 35, 146)",
+    elevation: 2,
+  },
+
+  pillText: {
+    color: "#d0d8ff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  pillTextActive: {
+    color: "#ffffff",
+    fontWeight: "bold",
+  },
+
+  /* BOTÓN GUARDAR */
+  saveButton: {
+    backgroundColor: "rgb(11, 35, 146)",
+    marginHorizontal: 18,
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    elevation: 4,
+    marginBottom: 14,
+  },
+
+  saveButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+
+  savedStatus: {
+    color: "#98ff98",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 10,
+    fontWeight: "600",
+  },
 });

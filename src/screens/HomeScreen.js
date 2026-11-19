@@ -5,104 +5,111 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../estilos/HomeStyles";
-import { comprobarBackend } from "../services/api";
-
-// Datos de partidos finalizados para el Scoreboard
-const recentResults = [
-  {
-    id: 1,
-    teamA: "New York Knicks",
-    scoreA: 112,
-    teamB: "Miami Heat",
-    scoreB: 104,
-  },
-  {
-    id: 2,
-    teamA: "Golden State Warriors",
-    scoreA: 120,
-    teamB: "Phoenix Suns",
-    scoreB: 115,
-  },
-  {
-    id: 3,
-    teamA: "Boston Celtics",
-    scoreA: 118,
-    teamB: "Milwaukee Bucks",
-    scoreB: 110,
-  },
-];
-
-// Top 4 de cada conferencia para vista rápida
-const conferenceTops = {
-  este: [
-    { pos: 1, team: "Boston Celtics", record: "64-18" },
-    { pos: 2, team: "New York Knicks", record: "50-32" },
-    { pos: 3, team: "Cleveland Cavaliers", record: "48-34" },
-    { pos: 4, team: "Milwaukee Bucks", record: "49-33" },
-  ],
-  oeste: [
-    { pos: 1, team: "OKC Thunder", record: "57-25" },
-    { pos: 2, team: "Denver Nuggets", record: "57-25" },
-    { pos: 3, team: "Minnesota Wolves", record: "56-26" },
-    { pos: 4, team: "Dallas Mavericks", record: "50-32" },
-  ],
-};
+import {
+  comprobarBackend,
+  obtenerPosicionesNBA,
+  obtenerPartidosNBA,
+} from "../services/api";
 
 export default function HomeScreen({ navigation }) {
   const [selectedConf, setSelectedConf] = useState("este");
-  const [estadoBackend, setEstadoBackend] = useState("Comprobando conexión...");
-  const [conectado, setConectado] = useState(false);
+  const [conectado, setConectado] = useState(true);
+  const [posiciones, setPosiciones] = useState({ este: [], oeste: [] });
+  const [partidoDestacado, setPartidoDestacado] = useState(null);
+  const [ultimosResultados, setUltimosResultados] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    comprobarBackend()
-      .then((datos) => {
-        if (datos.conectado) {
-          setConectado(true);
-          setEstadoBackend(`Base de Datos Conectada: ${datos.base}`);
-        } else {
-          setConectado(false);
-          setEstadoBackend("Error al conectar con la base de datos");
-        }
-      })
-      .catch((error) => {
-        console.error("Error de conexión:", error.message);
-        setConectado(false);
-        setEstadoBackend("Backend no disponible");
-      });
+    cargarDatos();
   }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+
+    // 1. Comprobar salud del servidor y base de datos
+    try {
+      const salud = await comprobarBackend();
+      setConectado(Boolean(salud.conectado));
+    } catch {
+      setConectado(false);
+    }
+
+    // 2. Cargar tabla de posiciones desde MySQL / API
+    try {
+      const posData = await obtenerPosicionesNBA();
+      if (posData && posData.este && posData.oeste) {
+        setPosiciones({
+          este: posData.este.slice(0, 5),
+          oeste: posData.oeste.slice(0, 5),
+        });
+      }
+    } catch (e) {
+      console.log("Error al cargar posiciones en inicio:", e.message);
+    }
+
+    // 3. Cargar partidos desde el servidor (BallDontLie / MySQL)
+    try {
+      const partidosRes = await obtenerPartidosNBA();
+      const listaPartidos = partidosRes.datos || [];
+
+      if (listaPartidos.length > 0) {
+        // Seleccionar partido destacado: el que esté en vivo, o el próximo más cercano
+        const enVivo = listaPartidos.find((p) => p.status === "live");
+        const proximo = listaPartidos.find((p) => p.status === "upcoming");
+        setPartidoDestacado(enVivo || proximo || listaPartidos[0]);
+
+        // Seleccionar últimos resultados finalizados
+        const finalizados = listaPartidos.filter((p) => p.status === "final");
+        setUltimosResultados(
+          finalizados.length > 0
+            ? finalizados.slice(0, 3)
+            : listaPartidos.slice(0, 3)
+        );
+      }
+    } catch (e) {
+      console.log("Error al cargar partidos en inicio:", e.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const listaActualPosiciones = posiciones[selectedConf] || [];
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View
-          style={{
-            backgroundColor: conectado ? "rgba(46, 125, 50, 0.35)" : "rgba(198, 40, 40, 0.35)",
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            marginHorizontal: 18,
-            marginTop: 12,
-            marginBottom: 4,
-            borderRadius: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: conectado ? "#4caf50" : "#e57373",
-          }}
-        >
-          <Ionicons
-            name={conectado ? "checkmark-circle" : "alert-circle"}
-            size={18}
-            color={conectado ? "#81c784" : "#e57373"}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
-            {estadoBackend}
-          </Text>
-        </View>
+        {!conectado && (
+          <View
+            style={{
+              backgroundColor: "rgba(198, 40, 40, 0.35)",
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              marginHorizontal: 18,
+              marginTop: 12,
+              marginBottom: 4,
+              borderRadius: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "#e57373",
+            }}
+          >
+            <Ionicons
+              name="cloud-offline-outline"
+              size={18}
+              color="#e57373"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
+              Modo sin conexión • Usando datos locales
+            </Text>
+          </View>
+        )}
 
         {/* HEADER CON LOGO */}
         <View style={styles.header}>
@@ -126,206 +133,267 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* PARTIDO DESTACADO */}
-        <View style={styles.featuredCard}>
-          <View style={styles.featuredTop}>
-            <View style={styles.featuredTag}>
-              <Ionicons name="star" size={13} color="#ffd54f" />
-              <Text style={styles.featuredTagText}>PARTIDO DESTACADO</Text>
-            </View>
-            <View style={styles.timeBadge}>
-              <Text style={styles.timeBadgeText}>HOY 21:30 hs</Text>
-            </View>
+        {/* INDICADOR DE CARGA */}
+        {cargando ? (
+          <View style={[styles.card, { alignItems: "center", paddingVertical: 30 }]}>
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text style={{ color: "#ffffff", marginTop: 10, fontSize: 13 }}>
+              Cargando información oficial de la NBA...
+            </Text>
           </View>
+        ) : (
+          <>
+            {/* PARTIDO DESTACADO DINÁMICO */}
+            {partidoDestacado && (
+              <View style={styles.featuredCard}>
+                <View style={styles.featuredTop}>
+                  <View style={styles.featuredTag}>
+                    <Ionicons name="star" size={13} color="#ffd54f" />
+                    <Text style={styles.featuredTagText}>PARTIDO DESTACADO</Text>
+                  </View>
+                  <View style={styles.timeBadge}>
+                    <Text style={styles.timeBadgeText}>
+                      {partidoDestacado.statusLabel || "HOY"}
+                    </Text>
+                  </View>
+                </View>
 
-          {/* ENFRENTAMIENTO */}
-          <View style={styles.matchupRow}>
-            {/* EQUIPO VISITA */}
-            <View style={styles.teamBox}>
-              <View style={styles.teamBadge}>
-                <Text style={styles.teamCode}>LAL</Text>
-              </View>
-              <Text style={styles.teamName}>L.A. Lakers</Text>
-              <Text style={styles.teamRecord}>47-35</Text>
-            </View>
+                {/* ENFRENTAMIENTO */}
+                <View style={styles.matchupRow}>
+                  {/* EQUIPO VISITA */}
+                  <View style={styles.teamBox}>
+                    <View style={styles.teamBadge}>
+                      <Text style={styles.teamCode}>
+                        {partidoDestacado.awayAbbr || "VIS"}
+                      </Text>
+                    </View>
+                    <Text style={styles.teamName} numberOfLines={1}>
+                      {partidoDestacado.awayTeam}
+                    </Text>
+                    <Text style={styles.teamRecord}>
+                      {partidoDestacado.awayRecord}
+                    </Text>
+                    {partidoDestacado.awayScore !== null &&
+                      partidoDestacado.awayScore !== undefined && (
+                        <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "bold", marginTop: 4 }}>
+                          {partidoDestacado.awayScore}
+                        </Text>
+                      )}
+                  </View>
 
-            {/* VS */}
-            <View style={styles.vsCircle}>
-              <Text style={styles.vsText}>VS</Text>
-            </View>
+                  {/* VS */}
+                  <View style={styles.vsCircle}>
+                    <Text style={styles.vsText}>VS</Text>
+                  </View>
 
-            {/* EQUIPO LOCAL */}
-            <View style={styles.teamBox}>
-              <View style={styles.teamBadge}>
-                <Text style={styles.teamCode}>BOS</Text>
-              </View>
-              <Text style={styles.teamName}>Celtics</Text>
-              <Text style={styles.teamRecord}>64-18</Text>
-            </View>
-          </View>
+                  {/* EQUIPO LOCAL */}
+                  <View style={styles.teamBox}>
+                    <View style={styles.teamBadge}>
+                      <Text style={styles.teamCode}>
+                        {partidoDestacado.homeAbbr || "LOC"}
+                      </Text>
+                    </View>
+                    <Text style={styles.teamName} numberOfLines={1}>
+                      {partidoDestacado.homeTeam}
+                    </Text>
+                    <Text style={styles.teamRecord}>
+                      {partidoDestacado.homeRecord}
+                    </Text>
+                    {partidoDestacado.homeScore !== null &&
+                      partidoDestacado.homeScore !== undefined && (
+                        <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "bold", marginTop: 4 }}>
+                          {partidoDestacado.homeScore}
+                        </Text>
+                      )}
+                  </View>
+                </View>
 
-          {/* LUGAR Y TRANSMISIÓN */}
-          <View style={styles.venueBar}>
-            <Ionicons name="location-outline" size={14} color="#ffffff" />
-            <Text style={styles.venueText}>TD Garden • ESPN / League Pass</Text>
-          </View>
-
-          {/* BOTÓN DE ACCIÓN */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.8}
-            onPress={() => navigation?.navigate && navigation.navigate("Partidos")}
-          >
-            <Text style={styles.buttonText}>Ver Partidos de Hoy</Text>
-            <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* ÚLTIMOS RESULTADOS */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.titleWithIcon}>
-              <Ionicons name="stats-chart" size={18} color="#ffffff" />
-              <Text style={styles.sectionTitle}>Últimos Resultados</Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation?.navigate && navigation.navigate("Partidos")}>
-              <Text style={styles.cardActionText}>Ver todos</Text>
-            </TouchableOpacity>
-          </View>
-
-          {recentResults.map((item) => (
-            <View key={item.id} style={styles.resultItem}>
-              <View style={styles.matchScoreInfo}>
-                <View style={styles.teamScoreLine}>
-                  <Text
-                    style={[
-                      styles.scoreTeamName,
-                      item.scoreA > item.scoreB && styles.teamWinner,
-                    ]}
-                  >
-                    {item.teamA}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.scorePoints,
-                      item.scoreA > item.scoreB && styles.pointsWinner,
-                    ]}
-                  >
-                    {item.scoreA}
+                {/* LUGAR Y TRANSMISIÓN */}
+                <View style={styles.venueBar}>
+                  <Ionicons name="location-outline" size={14} color="#ffffff" />
+                  <Text style={styles.venueText}>
+                    {partidoDestacado.arena || "Estadio NBA"} • {partidoDestacado.broadcast || "League Pass"}
                   </Text>
                 </View>
 
-                <View style={styles.teamScoreLine}>
-                  <Text
-                    style={[
-                      styles.scoreTeamName,
-                      item.scoreB > item.scoreA && styles.teamWinner,
-                    ]}
-                  >
-                    {item.teamB}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.scorePoints,
-                      item.scoreB > item.scoreA && styles.pointsWinner,
-                    ]}
-                  >
-                    {item.scoreB}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.finalBadge}>
-                <Text style={styles.finalText}>FINAL</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* CLASIFICACIÓN RÁPIDA (CONFERENCIAS) */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.titleWithIcon}>
-              <Ionicons name="trophy" size={18} color="#ffffff" />
-              <Text style={styles.sectionTitle}>Líderes de Conferencia</Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation?.navigate && navigation.navigate("Equipos")}>
-              <Text style={styles.cardActionText}>Tabla completa</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* SELECTOR ESTE / OESTE */}
-          <View style={styles.confTabContainer}>
-            <TouchableOpacity
-              style={[
-                styles.confTab,
-                selectedConf === "este" && styles.confTabActive,
-              ]}
-              onPress={() => setSelectedConf("este")}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.confTabText,
-                  selectedConf === "este" && styles.confTabTextActive,
-                ]}
-              >
-                Conferencia Este
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.confTab,
-                selectedConf === "oeste" && styles.confTabActive,
-              ]}
-              onPress={() => setSelectedConf("oeste")}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.confTabText,
-                  selectedConf === "oeste" && styles.confTabTextActive,
-                ]}
-              >
-                Conferencia Oeste
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ENCABEZADOS DE MINI TABLA */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, styles.colRank]}>#</Text>
-            <Text style={[styles.tableHeaderText, styles.colTeam]}>Equipo</Text>
-            <Text style={[styles.tableHeaderText, styles.colRecord]}>Récord</Text>
-            <Text style={[styles.tableHeaderText, styles.colStatus]}></Text>
-          </View>
-
-          {/* FILAS DE POSICIÓN */}
-          {conferenceTops[selectedConf].map((team) => (
-            <View key={team.pos} style={styles.standingRow}>
-              <View
-                style={[
-                  styles.rankBadge,
-                  team.pos === 1 && styles.rankBadgeTop,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.rankText,
-                    team.pos === 1 && styles.rankTextTop,
-                  ]}
+                {/* BOTÓN DE ACCIÓN */}
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  activeOpacity={0.8}
+                  onPress={() => navigation?.navigate && navigation.navigate("Partidos")}
                 >
-                  {team.pos}
-                </Text>
+                  <Text style={styles.buttonText}>Ver Todos los Partidos</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ÚLTIMOS RESULTADOS DINÁMICOS */}
+            {ultimosResultados.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.titleWithIcon}>
+                    <Ionicons name="stats-chart" size={18} color="#ffffff" />
+                    <Text style={styles.sectionTitle}>Últimos Resultados</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => navigation?.navigate && navigation.navigate("Partidos")}>
+                    <Text style={styles.cardActionText}>Ver todos</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {ultimosResultados.map((item) => {
+                  const awayWin = item.awayScore > item.homeScore;
+                  const homeWin = item.homeScore > item.awayScore;
+
+                  return (
+                    <View key={item.id} style={styles.resultItem}>
+                      <View style={styles.matchScoreInfo}>
+                        <View style={styles.teamScoreLine}>
+                          <Text
+                            style={[
+                              styles.scoreTeamName,
+                              awayWin && styles.teamWinner,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.awayTeam}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.scorePoints,
+                              awayWin && styles.pointsWinner,
+                            ]}
+                          >
+                            {item.awayScore !== null && item.awayScore !== undefined ? item.awayScore : "-"}
+                          </Text>
+                        </View>
+
+                        <View style={styles.teamScoreLine}>
+                          <Text
+                            style={[
+                              styles.scoreTeamName,
+                              homeWin && styles.teamWinner,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.homeTeam}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.scorePoints,
+                              homeWin && styles.pointsWinner,
+                            ]}
+                          >
+                            {item.homeScore !== null && item.homeScore !== undefined ? item.homeScore : "-"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.finalBadge}>
+                        <Text style={styles.finalText}>
+                          {item.status === "final" ? "FINAL" : item.status === "live" ? "EN VIVO" : "HOY"}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* CLASIFICACIÓN RÁPIDA (CONFERENCIAS) DINÁMICA */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.titleWithIcon}>
+                  <Ionicons name="trophy" size={18} color="#ffffff" />
+                  <Text style={styles.sectionTitle}>Líderes de Conferencia</Text>
+                </View>
+                <TouchableOpacity onPress={() => navigation?.navigate && navigation.navigate("Equipos")}>
+                  <Text style={styles.cardActionText}>Tabla completa</Text>
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.teamNameTable}>{team.team}</Text>
-              <Text style={styles.recordTextTable}>{team.record}</Text>
-              <View style={styles.playoffDot} />
+              {/* SELECTOR ESTE / OESTE */}
+              <View style={styles.confTabContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.confTab,
+                    selectedConf === "este" && styles.confTabActive,
+                  ]}
+                  onPress={() => setSelectedConf("este")}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.confTabText,
+                      selectedConf === "este" && styles.confTabTextActive,
+                    ]}
+                  >
+                    Conferencia Este
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.confTab,
+                    selectedConf === "oeste" && styles.confTabActive,
+                  ]}
+                  onPress={() => setSelectedConf("oeste")}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.confTabText,
+                      selectedConf === "oeste" && styles.confTabTextActive,
+                    ]}
+                  >
+                    Conferencia Oeste
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* ENCABEZADOS DE MINI TABLA */}
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderText, styles.colRank]}>#</Text>
+                <Text style={[styles.tableHeaderText, styles.colTeam]}>Equipo</Text>
+                <Text style={[styles.tableHeaderText, styles.colRecord]}>Récord</Text>
+                <Text style={[styles.tableHeaderText, styles.colStatus]}></Text>
+              </View>
+
+              {/* FILAS DE POSICIÓN DINÁMICAS */}
+              {listaActualPosiciones.length === 0 ? (
+                <Text style={{ color: "#d0d8ff", textAlign: "center", paddingVertical: 12 }}>
+                  Cargando posiciones de la conferencia...
+                </Text>
+              ) : (
+                listaActualPosiciones.map((team) => (
+                  <View key={team.pos || team.id} style={styles.standingRow}>
+                    <View
+                      style={[
+                        styles.rankBadge,
+                        team.pos === 1 && styles.rankBadgeTop,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.rankText,
+                          team.pos === 1 && styles.rankTextTop,
+                        ]}
+                      >
+                        {team.pos}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.teamNameTable} numberOfLines={1}>
+                      {team.team || team.shortName}
+                    </Text>
+                    <Text style={styles.recordTextTable}>{team.record}</Text>
+                    <View style={styles.playoffDot} />
+                  </View>
+                ))
+              )}
             </View>
-          ))}
-        </View>
+          </>
+        )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
