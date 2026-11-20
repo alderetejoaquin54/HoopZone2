@@ -64,7 +64,7 @@ export default function FantasyScreen({ navigation }) {
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.title}>NBA Fantasy</Text>
-          <Text style={styles.subtitle}>Tu quinteto ideal desde la base de datos</Text>
+          <Text style={styles.subtitle}>Tu quinteto ideal hecho por ti</Text>
         </View>
 
         {cargando ? (

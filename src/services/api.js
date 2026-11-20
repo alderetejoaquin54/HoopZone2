@@ -1,9 +1,6 @@
 import { Platform, NativeModules } from 'react-native';
 
-// Configuración de la URL del Backend:
-// - Si estás en la Web: usa localhost:3000
-// - Si estás en un celular físico (Expo Go) o emulador: detecta automáticamente la IP del host Metro o usa IP_LOCAL
-export const IP_LOCAL = '192.168.100.147';
+export const IP_LOCAL = '10.0.4.42';
 
 export const getApiUrl = () => {
   if (Platform.OS === 'web') {
@@ -46,7 +43,7 @@ const fetchConTimeout = async (url, opciones = {}, tiempoMs = 8000) => {
 };
 
 export async function comprobarBackend() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/salud`);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/salud`);
 
   if (!respuesta.ok) {
     throw new Error('El servidor respondió con un error.');
@@ -56,7 +53,7 @@ export async function comprobarBackend() {
 }
 
 export async function obtenerUsuarios() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios`);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios`);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los usuarios.');
@@ -66,7 +63,7 @@ export async function obtenerUsuarios() {
 }
 
 export async function obtenerPreferenciasUsuario(id = 1) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/preferencias`);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/preferencias`);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener las preferencias.');
@@ -76,7 +73,7 @@ export async function obtenerPreferenciasUsuario(id = 1) {
 }
 
 export async function actualizarUsuario(id, datos) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}`, {
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -93,7 +90,7 @@ export async function actualizarUsuario(id, datos) {
 }
 
 export async function actualizarPreferenciasUsuario(id, preferencias) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/preferencias`, {
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/preferencias`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -110,7 +107,7 @@ export async function actualizarPreferenciasUsuario(id, preferencias) {
 }
 
 export async function obtenerEquiposFavoritos(id = 1) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/equipos-favoritos`);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/equipos-favoritos`);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los equipos favoritos.');
@@ -120,7 +117,7 @@ export async function obtenerEquiposFavoritos(id = 1) {
 }
 
 export async function guardarEquipoFavorito(id = 1, equipoApiId) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/equipos-favoritos`, {
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/equipos-favoritos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -141,7 +138,7 @@ export async function guardarEquipoFavorito(id = 1, equipoApiId) {
 // ==========================================
 
 export async function obtenerEquiposNBA(sincronizar = false) {
-  const url = `${API_URL}/api/nba/equipos${sincronizar ? '?sincronizar=true' : ''}`;
+  const url = `${getApiUrl()}/api/nba/equipos${sincronizar ? '?sincronizar=true' : ''}`;
   const respuesta = await fetchConTimeout(url, {}, 8000);
 
   if (!respuesta.ok) {
@@ -152,7 +149,7 @@ export async function obtenerEquiposNBA(sincronizar = false) {
 }
 
 export async function obtenerPosicionesNBA() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/posiciones`, {}, 8000);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/nba/posiciones`, {}, 8000);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener las posiciones de la NBA.');
@@ -162,7 +159,7 @@ export async function obtenerPosicionesNBA() {
 }
 
 export async function obtenerLideresEstadisticas() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/estadisticas/lideres`, {}, 8000);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/nba/estadisticas/lideres`, {}, 8000);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los líderes de estadísticas.');
@@ -173,7 +170,7 @@ export async function obtenerLideresEstadisticas() {
 
 export async function obtenerJugadoresNBA(buscar = '') {
   const query = buscar ? `?buscar=${encodeURIComponent(buscar)}` : '';
-  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/jugadores${query}`, {}, 8000);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/nba/jugadores${query}`, {}, 8000);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los jugadores de la NBA.');
@@ -183,7 +180,7 @@ export async function obtenerJugadoresNBA(buscar = '') {
 }
 
 export async function obtenerPartidosNBA() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/partidos`, {}, 8000);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/nba/partidos`, {}, 8000);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los partidos de la NBA.');
@@ -193,7 +190,7 @@ export async function obtenerPartidosNBA() {
 }
 
 export async function obtenerJugadoresFavoritos(id = 1) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/jugadores-favoritos`);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/jugadores-favoritos`);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los jugadores favoritos.');
@@ -203,7 +200,7 @@ export async function obtenerJugadoresFavoritos(id = 1) {
 }
 
 export async function guardarJugadorFavorito(id = 1, jugadorId, datosExtra = {}) {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/usuarios/${id}/jugadores-favoritos`, {
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/usuarios/${id}/jugadores-favoritos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -224,7 +221,7 @@ export async function guardarJugadorFavorito(id = 1, jugadorId, datosExtra = {})
 
 export async function eliminarJugadorFavorito(id = 1, jugadorId) {
   const respuesta = await fetchConTimeout(
-    `${API_URL}/api/usuarios/${id}/jugadores-favoritos/${jugadorId}`,
+    `${getApiUrl()}/api/usuarios/${id}/jugadores-favoritos/${jugadorId}`,
     { method: 'DELETE' }
   );
 
@@ -236,7 +233,7 @@ export async function eliminarJugadorFavorito(id = 1, jugadorId) {
 }
 
 export async function obtenerNoticiasNBA() {
-  const respuesta = await fetchConTimeout(`${API_URL}/api/nba/noticias`, {}, 8000);
+  const respuesta = await fetchConTimeout(`${getApiUrl()}/api/nba/noticias`, {}, 8000);
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener las noticias.');

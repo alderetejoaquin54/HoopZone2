@@ -11,7 +11,7 @@ const PUERTO = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Comprobar conexión con MySQL
+// Comprobar salud del servidor y conexión con MySQL
 app.get('/api/salud', async (req, res) => {
     try {
         const [resultado] = await conexion.query(
@@ -20,15 +20,16 @@ app.get('/api/salud', async (req, res) => {
 
         res.json({
             conectado: true,
+            mysql: true,
             base: resultado[0].base,
             fecha: resultado[0].fecha
         });
     } catch (error) {
-        console.error('Error de MySQL:', error.message);
-
-        res.status(500).json({
-            conectado: false,
-            error: 'No se pudo conectar con MySQL'
+        // El backend Node/Express está 100% vivo y respondiendo a Expo
+        res.json({
+            conectado: true,
+            mysql: false,
+            aviso: 'Backend activo y respondiendo (MySQL no disponible)'
         });
     }
 });
@@ -235,6 +236,32 @@ app.delete('/api/usuarios/:id/equipos-favoritos/:equipoId', async (req, res) => 
 // ==========================================
 const BALLDONTLIE_BASE_URL = 'https://api.balldontlie.io/v1';
 
+// Diccionario rápido de abreviaturas de equipos
+const MAPA_EQUIPOS_ABBR = {};
+for (const eq of EQUIPOS_NBA_OFICIALES) {
+    MAPA_EQUIPOS_ABBR[eq.id] = eq.abreviatura;
+}
+
+function resolverAbreviaturaEquipo(teamObj, teamId) {
+    if (teamObj && teamObj.abbreviation) return teamObj.abbreviation;
+    if (teamId && MAPA_EQUIPOS_ABBR[teamId]) return MAPA_EQUIPOS_ABBR[teamId];
+    return 'NBA';
+}
+
+function traducirPosicion(pos) {
+    if (!pos) return 'NBA';
+    const p = String(pos).toUpperCase();
+    if (p === 'G') return 'Base / Escolta';
+    if (p === 'F') return 'Alero';
+    if (p === 'C') return 'Pívot';
+    if (p === 'G-F' || p === 'F-G') return 'Escolta-Alero';
+    if (p === 'F-C' || p === 'C-F') return 'Ala-Pívot';
+    return pos;
+}
+
+// Caché en memoria para optimizar peticiones y respetar los límites de la API
+const cacheMemoria = new Map();
+
 async function consultarBallDontLie(endpoint) {
     const apiKey = process.env.BALLDONTLIE_API_KEY;
     if (!apiKey) {
@@ -256,8 +283,47 @@ async function consultarBallDontLie(endpoint) {
     return await respuesta.json();
 }
 
-// 1. Obtener Equipos NBA
+async function consultarBallDontLieConCache(endpoint, ttlMs = 10 * 60 * 1000) {
+    const ahora = Date.now();
+    if (cacheMemoria.has(endpoint)) {
+        const item = cacheMemoria.get(endpoint);
+        if (ahora - item.timestamp < ttlMs) {
+            return item.datos;
+        }
+    }
+
+    const datos = await consultarBallDontLie(endpoint);
+    cacheMemoria.set(endpoint, { timestamp: ahora, datos });
+    return datos;
+}
+
+// 1. Obtener Equipos NBA (Consulta API en vivo con fallback en MySQL y local)
 app.get('/api/nba/equipos', async (req, res) => {
+    try {
+        const dataAPI = await consultarBallDontLieConCache('teams', 60 * 60 * 1000);
+        if (dataAPI && dataAPI.data && dataAPI.data.length > 0) {
+            const equipos = dataAPI.data
+                .filter(t => t.conference && t.division)
+                .map(t => ({
+                    id: t.id,
+                    nombre: t.name,
+                    nombre_completo: t.full_name,
+                    abreviatura: t.abbreviation,
+                    ciudad: t.city,
+                    conferencia: t.conference === 'East' ? 'Este' : t.conference === 'West' ? 'Oeste' : t.conference,
+                    division: t.division
+                }));
+
+            return res.json({
+                origen: 'api_balldontlie',
+                total: equipos.length,
+                datos: equipos
+            });
+        }
+    } catch (error) {
+        console.warn('⚠️ No se pudo consultar equipos en BallDontLie, recurriendo a MySQL / local:', error.message);
+    }
+
     try {
         const [equiposDB] = await conexion.query(
             'SELECT * FROM equipos_nba ORDER BY nombre_completo ASC'
@@ -265,27 +331,53 @@ app.get('/api/nba/equipos', async (req, res) => {
 
         if (equiposDB.length > 0) {
             return res.json({
+                origen: 'mysql',
                 total: equiposDB.length,
                 datos: equiposDB
             });
         }
-
-        // Si la tabla estuviera vacía, usar datos oficiales de respaldo
-        res.json({
-            total: EQUIPOS_NBA_OFICIALES.length,
-            datos: EQUIPOS_NBA_OFICIALES
-        });
     } catch (error) {
-        console.error('Error al obtener equipos:', error.message);
-        res.json({
-            total: EQUIPOS_NBA_OFICIALES.length,
-            datos: EQUIPOS_NBA_OFICIALES
-        });
+        console.error('Error al obtener equipos de MySQL:', error.message);
     }
+
+    res.json({
+        origen: 'datos_locales',
+        total: EQUIPOS_NBA_OFICIALES.length,
+        datos: EQUIPOS_NBA_OFICIALES
+    });
 });
 
-// Sincronizar equipos y récords de la temporada actual en MySQL
+// Sincronizar equipos y récords de la temporada actual en MySQL desde la API de BallDontLie
 app.post('/api/nba/equipos/sincronizar', async (req, res) => {
+    try {
+        // Intentar sincronizar desde API en vivo
+        const standingsAPI = await consultarBallDontLie('standings?season=2024').catch(() => null);
+        if (standingsAPI && standingsAPI.data && standingsAPI.data.length > 0) {
+            for (const item of standingsAPI.data) {
+                const team = item.team || {};
+                const wins = Number(item.wins || 0);
+                const losses = Number(item.losses || 0);
+                const total = wins + losses;
+                const pct = total > 0 ? (wins / total).toFixed(3) : 0;
+                const conf = (team.conference || '').toLowerCase() === 'east' ? 'Este' : 'Oeste';
+
+                await conexion.execute(`
+                    INSERT INTO equipos_nba (id, nombre, nombre_completo, abreviatura, ciudad, conferencia, division, victorias, derrotas, pct, racha)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    victorias = VALUES(victorias),
+                    derrotas = VALUES(derrotas),
+                    pct = VALUES(pct),
+                    racha = VALUES(racha)
+                `, [team.id, team.name, team.full_name, team.abbreviation, team.city || '', conf, team.division || '', wins, losses, pct, item.streak || 'G1']);
+            }
+
+            return res.json({ mensaje: 'Equipos sincronizados con éxito desde la API BallDontLie', total: standingsAPI.data.length });
+        }
+    } catch (errApi) {
+        console.warn('Fallo sincronización online, usando respaldo oficial local:', errApi.message);
+    }
+
     try {
         for (const eq of EQUIPOS_NBA_OFICIALES) {
             await conexion.execute(`
@@ -304,15 +396,95 @@ app.post('/api/nba/equipos/sincronizar', async (req, res) => {
                 racha = VALUES(racha)
             `, [eq.id, eq.nombre, eq.nombre_completo, eq.abreviatura, eq.ciudad, eq.conferencia, eq.division, eq.victorias, eq.derrotas, eq.pct, eq.racha]);
         }
-        res.json({ mensaje: 'Equipos sincronizados con éxito con la temporada actual', total: EQUIPOS_NBA_OFICIALES.length });
+        res.json({ mensaje: 'Equipos sincronizados con éxito con datos locales oficiales', total: EQUIPOS_NBA_OFICIALES.length });
     } catch (error) {
         console.error('Error al sincronizar equipos en BD:', error.message);
         res.status(500).json({ error: 'Error al sincronizar equipos', detalle: error.message });
     }
 });
 
-// 1.1 Posiciones y Récords (Standings) Conferencia Este y Oeste
+// 1.1 Posiciones y Récords (Standings) Conferencia Este y Oeste desde la API BallDontLie
 app.get('/api/nba/posiciones', async (req, res) => {
+    const temporada = req.query.season || '2024';
+
+    try {
+        // Consultar standings en vivo desde la API de BallDontLie
+        const dataAPI = await consultarBallDontLieConCache(`standings?season=${temporada}`, 15 * 60 * 1000);
+        let standingsList = dataAPI && dataAPI.data ? dataAPI.data : [];
+
+        // Si la temporada 2024 no tuviera datos todavía, intentar 2023 como fallback
+        if (standingsList.length === 0 && temporada === '2024') {
+            const data2023 = await consultarBallDontLieConCache(`standings?season=2023`, 30 * 60 * 1000).catch(() => null);
+            if (data2023 && data2023.data) standingsList = data2023.data;
+        }
+
+        if (standingsList.length > 0) {
+            const normalizarItem = (item, index) => {
+                const team = item.team || {};
+                const wins = Number(item.wins || 0);
+                const losses = Number(item.losses || 0);
+                const total = wins + losses;
+                const pct = total > 0 ? (wins / total).toFixed(3) : '0.000';
+                const confRaw = (team.conference || '').toLowerCase();
+                const esEste = confRaw === 'east' || confRaw === 'este';
+
+                return {
+                    pos: item.conference_rank || index + 1,
+                    id: team.id,
+                    team: team.full_name || team.name,
+                    shortName: team.name,
+                    abbr: team.abbreviation,
+                    record: `${wins}-${losses}`,
+                    victorias: wins,
+                    derrotas: losses,
+                    pct: pct,
+                    racha: item.streak || (wins >= losses ? 'G1' : 'P1'),
+                    conference: esEste ? 'Este' : 'Oeste'
+                };
+            };
+
+            const este = standingsList
+                .filter(item => {
+                    const c = (item.team?.conference || '').toLowerCase();
+                    return c === 'east' || c === 'este';
+                })
+                .sort((a, b) => (a.conference_rank || 0) - (b.conference_rank || 0))
+                .map(normalizarItem);
+
+            const oeste = standingsList
+                .filter(item => {
+                    const c = (item.team?.conference || '').toLowerCase();
+                    return c === 'west' || c === 'oeste';
+                })
+                .sort((a, b) => (a.conference_rank || 0) - (b.conference_rank || 0))
+                .map(normalizarItem);
+
+            // Actualizar datos en MySQL en segundo plano para caché
+            (async () => {
+                try {
+                    for (const eq of [...este, ...oeste]) {
+                        await conexion.execute(`
+                            UPDATE equipos_nba
+                            SET victorias = ?, derrotas = ?, pct = ?, racha = ?
+                            WHERE id = ? OR abreviatura = ?
+                        `, [eq.victorias, eq.derrotas, eq.pct, eq.racha, eq.id, eq.abbr]);
+                    }
+                } catch {
+                    // Silencioso en background
+                }
+            })();
+
+            return res.json({
+                origen: 'api_balldontlie',
+                este,
+                oeste
+            });
+        }
+    } catch (error) {
+        console.warn('⚠️ No se pudieron obtener posiciones desde BallDontLie, recurriendo a MySQL / local:', error.message);
+    }
+
+    // Fallback 1: Base de datos MySQL
     try {
         const [equipos] = await conexion.query(
             'SELECT * FROM equipos_nba ORDER BY pct DESC, victorias DESC'
@@ -358,16 +530,78 @@ app.get('/api/nba/posiciones', async (req, res) => {
                 conference: 'Oeste'
             }));
 
-        res.json({ este, oeste });
+        res.json({ origen: 'mysql_fallback', este, oeste });
     } catch (error) {
-        console.error('Error al obtener posiciones:', error.message);
+        console.error('Error al obtener posiciones fallback:', error.message);
         res.status(500).json({ error: 'No se pudieron obtener las posiciones' });
     }
 });
 
-// 1.2 Líderes de Estadísticas de la Temporada
-app.get('/api/nba/estadisticas/lideres', (req, res) => {
-    res.json(LIDERES_ESTADISTICAS);
+// 1.2 Líderes de Estadísticas de la Temporada (Consulta en vivo desde BallDontLie con fallback a datos locales)
+app.get('/api/nba/estadisticas/lideres', async (req, res) => {
+    const temporada = req.query.season || '2024';
+
+    // Mapeo de categorías HoopZone <-> stat_type de BallDontLie
+    const CATEGORIAS_API = {
+        puntos: 'pts',
+        rebotes: 'reb',
+        asistencias: 'ast',
+        triples: 'fg3m',
+        bloqueos: 'blk'
+    };
+
+    try {
+        const resultado = {};
+        let huboExito = false;
+
+        // Consultar cada categoría en paralelo a través de BallDontLie
+        const promesas = Object.entries(CATEGORIAS_API).map(async ([catKey, statType]) => {
+            try {
+                const dataAPI = await consultarBallDontLieConCache(`leaders?stat_type=${statType}&season=${temporada}`, 30 * 60 * 1000);
+                const lista = dataAPI && dataAPI.data ? dataAPI.data : [];
+
+                if (lista.length > 0) {
+                    huboExito = true;
+                    resultado[catKey] = lista.slice(0, 10).map((item, index) => {
+                        const player = item.player || {};
+                        const nombreCompleto = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Jugador NBA';
+                        const equipoAbbr = resolverAbreviaturaEquipo(player.team, player.team_id);
+                        const statNum = Number(item.value || 0).toFixed(1);
+
+                        return {
+                            rank: item.rank || index + 1,
+                            jugador: nombreCompleto,
+                            equipo: equipoAbbr,
+                            stat: statNum,
+                            pos: traducirPosicion(player.position),
+                            pj: item.games_played || item.games || 0
+                        };
+                    });
+                } else {
+                    resultado[catKey] = LIDERES_ESTADISTICAS[catKey] || [];
+                }
+            } catch (errCat) {
+                resultado[catKey] = LIDERES_ESTADISTICAS[catKey] || [];
+            }
+        });
+
+        await Promise.all(promesas);
+
+        if (huboExito) {
+            return res.json({
+                origen: 'api_balldontlie',
+                ...resultado
+            });
+        }
+    } catch (error) {
+        console.warn('⚠️ No se pudieron consultar líderes en BallDontLie, usando datos locales:', error.message);
+    }
+
+    // Fallback a los datos oficiales locales de datosNBA
+    res.json({
+        origen: 'datos_locales',
+        ...LIDERES_ESTADISTICAS
+    });
 });
 
 // 2. Buscar y Obtener Jugadores NBA (con guardado en MySQL)
@@ -480,7 +714,7 @@ function normalizarPartido(g) {
 // 3. Obtener Partidos Recientes / En Vivo de la NBA (API BallDontLie con respaldo en MySQL)
 app.get('/api/nba/partidos', async (req, res) => {
     try {
-        const dataAPI = await consultarBallDontLie('games?per_page=20');
+        const dataAPI = await consultarBallDontLieConCache('games?per_page=25', 3 * 60 * 1000);
         if (dataAPI && dataAPI.data && dataAPI.data.length > 0) {
             const normalizados = dataAPI.data.map(normalizarPartido);
             return res.json({
@@ -490,7 +724,7 @@ app.get('/api/nba/partidos', async (req, res) => {
             });
         }
     } catch (error) {
-        // Fallback silencioso a base de datos
+        console.warn('⚠️ No se pudieron consultar partidos en vivo desde BallDontLie, usando MySQL / local:', error.message);
     }
 
     try {
@@ -678,9 +912,10 @@ async function iniciarServidor() {
         console.log('💡 Continuando inicio del servidor Express...\n');
     }
 
-    app.listen(PUERTO, () => {
+    app.listen(PUERTO, '0.0.0.0', () => {
         console.log(`\n=================================================`);
         console.log(`🚀 HoopZone backend iniciado en http://localhost:${PUERTO}`);
+        console.log(`📱 En tu celular (misma red Wi-Fi): http://10.0.4.42:${PUERTO}`);
         console.log(`=================================================\n`);
     });
 }
